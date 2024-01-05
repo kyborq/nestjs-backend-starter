@@ -27,10 +27,31 @@ export class TokenService {
     return token;
   }
 
-  async generateTokens(userId: string, email: string): Promise<TokenResponse> {
+  async generateVerifyToken(userId: string, email: string, verified: boolean) {
     const jwtPayload: JwtPayload = {
       sub: userId,
       email,
+      verified,
+    };
+
+    const token = await this.generateToken(
+      jwtPayload,
+      this.configService.get<string>('JWT_ACCESS_SECRET'),
+      '15m',
+    );
+
+    return token;
+  }
+
+  async generateTokens(
+    userId: string,
+    email: string,
+    verified: boolean,
+  ): Promise<TokenResponse> {
+    const jwtPayload: JwtPayload = {
+      sub: userId,
+      email,
+      verified,
     };
 
     const [accessToken, refreshToken] = await Promise.all([

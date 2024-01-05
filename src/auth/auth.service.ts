@@ -8,12 +8,14 @@ import { LoginDto } from './dtos/login.dto';
 import { UsersService } from 'src/users/users.service';
 import { TokenResponse, TokenService } from './token.service';
 import * as argon from 'argon2';
+import { MailService } from 'src/mail/mail.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private tokenService: TokenService,
+    private mailService: MailService,
   ) {}
 
   async registerUser(registerDto: RegisterDto) {
@@ -33,10 +35,15 @@ export class AuthService {
     const tokens = await this.tokenService.generateTokens(
       createdUser.id,
       createdUser.email,
+      createdUser.emailVerified,
     );
     await this.usersService.updateToken(createdUser.id, tokens.refreshToken);
 
-    // 6. Send verification email (optional)
+    this.sendVerificationMail(
+      createdUser.id,
+      createdUser.email,
+      createdUser.emailVerified,
+    );
   }
 
   async loginUser(loginDto: LoginDto): Promise<TokenResponse> {
@@ -51,7 +58,11 @@ export class AuthService {
       throw new ForbiddenException('Access Denied');
     }
 
-    const tokens = await this.tokenService.generateTokens(user.id, user.email);
+    const tokens = await this.tokenService.generateTokens(
+      user.id,
+      user.email,
+      user.emailVerified,
+    );
     const hashedToken = await argon.hash(tokens.refreshToken);
 
     await this.usersService.updateToken(user.id, hashedToken);
@@ -71,13 +82,51 @@ export class AuthService {
     }
 
     const tokenMatches = await argon.verify(user.token, refreshToken);
+
     if (!tokenMatches) {
       throw new ForbiddenException('Access Denied');
     }
 
-    const tokens = await this.tokenService.generateTokens(userId, user.email);
+    const tokens = await this.tokenService.generateTokens(
+      userId,
+      user.email,
+      user.emailVerified,
+    );
     const hashedToken = await argon.hash(tokens.refreshToken);
 
     return this.usersService.updateToken(userId, hashedToken);
+  }
+
+  async sendVerificationMail(userId: string, email: string, verified: boolean) {
+    const token = await this.tokenService.generateVerifyToken(
+      userId,
+      email,
+      verified,
+    );
+    const hashedToken = await argon.hash(token);
+
+    await this.usersService.updateEmailToken(userId, hashedToken);
+
+    const url = `http://localhost:3000/auth/verify?token=${token}`;
+    const subject = 'Verify your email address';
+    const text = `Please verify your email address by clicking on the link below:\n\n${url}`;
+
+    await this.mailService.sendEmail({ to: email, subject, text });
+  }
+
+  async verifyEmail(userId: string, code: string) {
+    const user = await this.usersService.getById(userId);
+
+    if (!user || !user.emailToken) {
+      throw new BadRequestException('Invalid token');
+    }
+
+    const tokenMatches = await argon.verify(user.emailToken, code);
+
+    if (!tokenMatches) {
+      throw new BadRequestException('Token is not valid');
+    }
+
+    await this.usersService.verifyEmail(userId);
   }
 }

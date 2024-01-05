@@ -1,9 +1,12 @@
 import {
+  BadRequestException,
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
+  Query,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -73,5 +76,23 @@ export class AuthController {
       currentUser.sub,
       currentUser.refreshToken,
     );
+  }
+
+  @Get('verify')
+  // @UseGuards(AccessGuard)
+  @HttpCode(HttpStatus.OK)
+  async verify(
+    @GetCurrentUser() currentUser: JwtPayload,
+    @Query('token') token: string,
+  ) {
+    if (!token) {
+      throw new BadRequestException('Token is invalid');
+    }
+
+    // if (currentUser.verified) {
+    //   throw new BadRequestException('ErrorMessage.EmailAlreadyVerified');
+    // }
+
+    await this.authService.verifyEmail(currentUser.sub, token);
   }
 }

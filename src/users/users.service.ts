@@ -30,4 +30,19 @@ export class UsersService {
     const updatedUser = this.userModel.findByIdAndUpdate(userId, { token });
     return updatedUser.exec();
   }
+
+  async updateEmailToken(userId: string, token: string | null): Promise<User> {
+    const updatedUser = this.userModel.findByIdAndUpdate(userId, {
+      emailToken: token,
+    });
+    return updatedUser.exec();
+  }
+
+  async verifyEmail(userId: string): Promise<User> {
+    const updatedUser = this.userModel.findByIdAndUpdate(userId, {
+      emailVerified: true,
+      emailToken: null,
+    });
+    return updatedUser.exec();
+  }
 }

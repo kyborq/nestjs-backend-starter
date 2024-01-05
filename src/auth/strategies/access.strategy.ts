@@ -6,6 +6,7 @@ import { Strategy } from 'passport-jwt';
 export type JwtPayload = {
   email: string;
   sub: string;
+  verified: boolean;
 };
 
 export const cookieExtractor = (req: Request): string | null => {

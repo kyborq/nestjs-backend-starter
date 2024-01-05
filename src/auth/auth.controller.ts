@@ -4,6 +4,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -13,6 +14,9 @@ import { GetCurrentUser } from 'src/common/decorators/current-user.decorator';
 import { RefreshGuard } from 'src/common/guards/refresh.guard';
 import { AccessGuard } from 'src/common/guards/access.guard';
 import { JwtPayloadWithRefresh } from './strategies/refresh.strategy';
+import { Response } from 'express';
+import { JwtPayload } from './strategies/access.strategy';
+import { TokenResponse } from './token.service';
 
 @Controller('auth')
 export class AuthController {
@@ -26,22 +30,48 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  login(@Body() loginDto: LoginDto) {
-    return this.authService.loginUser(loginDto);
+  async login(
+    @Res({ passthrough: true }) response: Response,
+    @Body() loginDto: LoginDto,
+  ) {
+    const { accessToken, refreshToken } =
+      await this.authService.loginUser(loginDto);
+
+    response.cookie('jwt', accessToken, {
+      httpOnly: true,
+      secure: true,
+      path: '/',
+      maxAge: 1000 * 60 * 15,
+    });
+
+    response.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      path: '/',
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+    });
   }
 
   @Post('logout')
   @UseGuards(AccessGuard)
   @HttpCode(HttpStatus.OK)
-  logout(@GetCurrentUser() currentUser: JwtPayloadWithRefresh) {
-    console.log(currentUser);
-    return this.authService.logoutUser('0');
+  logout(
+    @Res({ passthrough: true }) response: Response,
+    @GetCurrentUser() currentUser: JwtPayload,
+  ) {
+    response.clearCookie('jwt', { path: '/' });
+    response.clearCookie('refreshToken', { path: '/' });
+
+    this.authService.logoutUser(currentUser.sub);
   }
 
   @Post('refresh')
   @UseGuards(RefreshGuard)
   @HttpCode(HttpStatus.OK)
-  refresh() {
-    return this.authService.refreshToken('0', '');
+  refresh(@GetCurrentUser() currentUser: JwtPayloadWithRefresh) {
+    return this.authService.refreshToken(
+      currentUser.sub,
+      currentUser.refreshToken,
+    );
   }
 }

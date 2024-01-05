@@ -52,8 +52,9 @@ export class AuthService {
     }
 
     const tokens = await this.tokenService.generateTokens(user.id, user.email);
+    const hashedToken = await argon.hash(tokens.refreshToken);
 
-    await this.usersService.updateToken(user.id, tokens.refreshToken);
+    await this.usersService.updateToken(user.id, hashedToken);
 
     return tokens;
   }
@@ -63,6 +64,20 @@ export class AuthService {
   }
 
   async refreshToken(userId: string, refreshToken: string) {
-    return this.usersService.updateToken(userId, refreshToken);
+    const user = await this.usersService.getById(userId);
+
+    if (!user || !user.token) {
+      throw new ForbiddenException('Access Denied');
+    }
+
+    const tokenMatches = await argon.verify(user.token, refreshToken);
+    if (!tokenMatches) {
+      throw new ForbiddenException('Access Denied');
+    }
+
+    const tokens = await this.tokenService.generateTokens(userId, user.email);
+    const hashedToken = await argon.hash(tokens.refreshToken);
+
+    return this.usersService.updateToken(userId, hashedToken);
   }
 }

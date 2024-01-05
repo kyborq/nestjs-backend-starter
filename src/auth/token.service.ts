@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtPayload } from './strategies/access.strategy';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 export type TokenResponse = {
   accessToken: string;
@@ -9,7 +10,10 @@ export type TokenResponse = {
 
 @Injectable()
 export class TokenService {
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    private jwtService: JwtService,
+    private configService: ConfigService,
+  ) {}
 
   async generateToken(
     data: JwtPayload,
@@ -30,8 +34,16 @@ export class TokenService {
     };
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.generateToken(jwtPayload, 'secret', '15m'),
-      this.generateToken(jwtPayload, 'secret', '7d'),
+      this.generateToken(
+        jwtPayload,
+        this.configService.get<string>('JWT_ACCESS_SECRET'),
+        '15m',
+      ),
+      this.generateToken(
+        jwtPayload,
+        this.configService.get<string>('JWT_REFRESH_SECRET'),
+        '7d',
+      ),
     ]);
 
     return { accessToken, refreshToken };

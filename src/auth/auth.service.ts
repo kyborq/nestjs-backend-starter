@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { RegisterDto } from './dtos/register.dto';
 import { LoginDto } from './dtos/login.dto';
 import { UsersService } from 'src/users/users.service';
@@ -13,17 +17,25 @@ export class AuthService {
   ) {}
 
   async registerUser(registerDto: RegisterDto) {
-    // 2. Create User for db
-    // 3. Save User in DB
-    // 4. Generate tokens for User
-    // 5. Save refresh token in db for User
+    const existedUser = await this.usersService.getByEmail(registerDto.email);
+
+    if (existedUser) {
+      throw new BadRequestException('User already exist');
+    }
+
     const hash = await argon.hash(registerDto.password);
 
-    this.usersService.createUser({
+    const createdUser = await this.usersService.createUser({
       ...registerDto,
       password: hash,
-      token: null,
     });
+
+    const tokens = await this.tokenService.generateTokens(
+      createdUser.id,
+      createdUser.email,
+    );
+    await this.usersService.updateToken(createdUser.id, tokens.refreshToken);
+
     // 6. Send verification email (optional)
   }
 

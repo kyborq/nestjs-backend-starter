@@ -16,7 +16,7 @@ export class UsersService {
     return createdUser.save();
   }
 
-  async getByEmail(email: string): Promise<User> {
+  async getByEmail(email: string) {
     const user = this.userModel.findOne({ email });
     return user.exec();
   }
@@ -26,7 +26,7 @@ export class UsersService {
     return user.exec();
   }
 
-  async updateToken(userId: number, token: string | null): Promise<User> {
+  async updateToken(userId: string, token: string | null): Promise<User> {
     const updatedUser = this.userModel.findByIdAndUpdate(userId, { token });
     return updatedUser.exec();
   }

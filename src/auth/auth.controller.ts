@@ -22,12 +22,12 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   logout() {
-    return this.authService.logoutUser(0);
+    return this.authService.logoutUser('0');
   }
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   refresh() {
-    return this.authService.refreshToken(0, '');
+    return this.authService.refreshToken('0', '');
   }
 }

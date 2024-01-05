@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { RegisterDto } from './dtos/register.dto';
 import { LoginDto } from './dtos/login.dto';
 import { UsersService } from 'src/users/users.service';
+import { TokenResponse } from './utils/token.utils';
 
 @Injectable()
 export class AuthService {
@@ -11,23 +12,30 @@ export class AuthService {
     // 1. Hash password
     // 2. Create User for db
     // 3. Save User in DB
-    this.usersService.createUser();
-
     // 4. Generate tokens for User
     // 5. Save refresh token in db for User
+    this.usersService.createUser({ ...registerDto, token: '' });
     // 6. Send verification email (optional)
   }
 
-  async loginUser(loginDto: LoginDto) {
-    // 1. Find user by email
-    this.usersService.getByEmail(loginDto.login);
+  async loginUser(loginDto: LoginDto): Promise<TokenResponse> {
+    const user = await this.usersService.getByEmail(loginDto.login);
+
     // 2. Compare hashed credentials and hashed already user password
-    // 3. Generate tokens for user
-    // 4. Update refresh token in db for user
+    if (user.password === loginDto.password) {
+      // 3. Generate tokens for user
+      // 4. Update refresh token in db for user
+      // 5. Return refresh and access tokens
+      return {
+        accessToken: '',
+        refreshToken: '',
+      };
+    }
+
+    return null;
   }
 
   async logoutUser(userId: number) {
-    // 1. Delete refresh token from User in db
     this.usersService.updateToken(userId, null);
   }
 

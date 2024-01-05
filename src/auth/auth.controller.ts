@@ -28,6 +28,6 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   refresh() {
-    return this.authService.refreshToken();
+    return this.authService.refreshToken(0, '');
   }
 }

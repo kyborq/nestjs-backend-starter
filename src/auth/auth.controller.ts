@@ -1,7 +1,18 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dtos/login.dto';
 import { RegisterDto } from './dtos/register.dto';
+import { GetCurrentUser } from 'src/common/decorators/current-user.decorator';
+import { RefreshGuard } from 'src/common/guards/refresh.guard';
+import { AccessGuard } from 'src/common/guards/access.guard';
+import { JwtPayloadWithRefresh } from './strategies/refresh.strategy';
 
 @Controller('auth')
 export class AuthController {
@@ -20,12 +31,15 @@ export class AuthController {
   }
 
   @Post('logout')
+  @UseGuards(AccessGuard)
   @HttpCode(HttpStatus.OK)
-  logout() {
+  logout(@GetCurrentUser() currentUser: JwtPayloadWithRefresh) {
+    console.log(currentUser);
     return this.authService.logoutUser('0');
   }
 
   @Post('refresh')
+  @UseGuards(RefreshGuard)
   @HttpCode(HttpStatus.OK)
   refresh() {
     return this.authService.refreshToken('0', '');

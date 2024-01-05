@@ -47,10 +47,10 @@ export class AuthService {
   }
 
   async logoutUser(userId: string) {
-    this.usersService.updateToken(userId, null);
+    return this.usersService.updateToken(userId, null);
   }
 
   async refreshToken(userId: string, refreshToken: string) {
-    this.usersService.updateToken(userId, refreshToken);
+    return this.usersService.updateToken(userId, refreshToken);
   }
 }
